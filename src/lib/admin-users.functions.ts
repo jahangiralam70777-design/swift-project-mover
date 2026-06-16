@@ -338,38 +338,56 @@ export const adminUserStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertPermission(context.supabase, context.userId, "manage_users");
-    const sb = context.supabase;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = context.supabase as any;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const [total, active, suspended, pending, admins] = await Promise.all([
-      sb.from("profiles").select("id", { count: "exact", head: true }),
-      sb.from("profiles").select("id", { count: "exact", head: true }).eq("status", "active"),
-      sb.from("profiles").select("id", { count: "exact", head: true }).eq("status", "suspended"),
-      sb.from("profiles").select("id", { count: "exact", head: true }).eq("status", "pending"),
-      sb.from("user_roles").select("user_id", { count: "exact", head: true }).eq("role", "admin"),
+    const [total, active, suspended, pending, adminRows] = await Promise.all([
+      sb.from("profiles").select("id", { count: "exact", head: true }).is("deleted_at", null),
+      sb
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "active")
+        .is("deleted_at", null),
+      sb
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "suspended")
+        .is("deleted_at", null),
+      sb
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending")
+        .is("deleted_at", null),
+      // Pull distinct user_ids holding any admin-class role (admin OR super_admin).
+      // A single user with both roles must be counted once.
+      sb
+        .from("user_roles")
+        .select("user_id")
+        .in("role", ADMIN_ROLES as unknown as string[]),
     ]);
-    // Count verified users by paging through auth.users (capped).
+    const adminIdSet = new Set<string>(
+      (adminRows.data ?? []).map((r: { user_id: string }) => r.user_id),
+    );
+
+    // Count verified users by paging through ALL auth.users (capped at 10k).
+    // Previously this read only page 1 / 1000 rows → undercounted on larger sets.
     let verified = 0;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: u } = await (supabaseAdmin.auth.admin as any).listUsers({
-        page: 1,
-        perPage: 1000,
-      });
-      verified = (u?.users ?? []).filter(
-        (x: { email_confirmed_at?: string | null }) => !!x.email_confirmed_at,
-      ).length;
+      const all = await listAuthUsersAll(supabaseAdmin);
+      verified = all.filter((u) => u.verified).length;
     } catch {
-      verified = active.count ?? 0;
+      verified = 0;
     }
     return {
       total: total.count ?? 0,
       active: active.count ?? 0,
       suspended: suspended.count ?? 0,
       pending: pending.count ?? 0,
-      admins: admins.count ?? 0,
+      admins: adminIdSet.size,
       verified,
     };
   });
+
 
 const createStudentInput = z.object({
   display_name: z.string().trim().min(1).max(120),
