@@ -492,18 +492,30 @@ function AdminUsersListPage() {
                         {u.email_verified && <BadgeCheck className="h-3.5 w-3.5 text-emerald-400" />}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm font-medium text-foreground">{u.level}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4">
+                      <LevelBadge level={u.level} />
+                    </td>
+                    <td className="px-4 py-4">
                       <StatusBadge status={u.status} />
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-1.5">
-                        {(u.roles ?? []).map((r) => (
-                          <RoleBadge key={r} role={r} />
-                        ))}
-                        {(!u.roles || u.roles.length === 0) && (
-                          <span className="text-muted-foreground text-sm">—</span>
-                        )}
+                    <td className="px-4 py-4">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {(() => {
+                          const roles = u.roles ?? [];
+                          const primary = pickPrimaryRole(roles);
+                          const extras = roles.filter((r) => r !== primary);
+                          if (!primary) {
+                            return <RoleBadge role="student" />;
+                          }
+                          return (
+                            <>
+                              <RoleBadge role={primary} />
+                              {extras.map((r) => (
+                                <RoleBadge key={r} role={r} subtle />
+                              ))}
+                            </>
+                          );
+                        })()}
                       </div>
                     </td>
                     <td className="px-6 py-4">
