@@ -292,9 +292,9 @@ function AdminUsersListPage() {
   const heading = search.title || buildTitle(search);
 
   return (
-    <div className="space-y-6 p-4 lg:p-6">
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div className="space-y-1">
+    <div className="flex h-full min-h-0 flex-col gap-5 p-4 lg:p-6">
+      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 sm:flex sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+        <div className="min-w-0 space-y-1">
           <Link
             to="/admin/users"
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group"
@@ -302,22 +302,25 @@ function AdminUsersListPage() {
             <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
             Back to User Management
           </Link>
-          <div className="flex items-center gap-3">
-            <h1 className="font-display text-2xl font-bold tracking-tight md:text-3xl">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="font-display text-2xl font-bold tracking-tight text-foreground md:text-3xl truncate">
               {heading}
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full bg-muted border border-border text-xs font-medium text-muted-foreground">
-              {isFetching ? "..." : `${total.toLocaleString()} Total`}
+            <span className="px-2.5 py-0.5 rounded-full bg-secondary border border-border text-xs font-semibold text-secondary-foreground tabular-nums">
+              {isFetching ? "…" : `${total.toLocaleString()} total`}
             </span>
           </div>
+          {summarizeFilters(search) && (
+            <p className="text-xs text-muted-foreground truncate">{summarizeFilters(search)}</p>
+          )}
         </div>
-        <Button size="sm" variant="outline" className="rounded-xl h-9" onClick={exportCsv}>
+        <Button size="sm" variant="outline" className="rounded-xl h-9 shrink-0" onClick={exportCsv}>
           <Download className="mr-2 h-4 w-4" /> Export CSV
         </Button>
       </header>
 
-      <section className="glass shadow-card rounded-2xl p-3 flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[280px]">
+      <section className="sticky top-0 z-20 rounded-2xl border border-border bg-card/95 backdrop-blur shadow-card p-3 flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[260px]">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={q}
@@ -328,11 +331,11 @@ function AdminUsersListPage() {
             onBlur={() => {
               if (q !== search.q) update({ q });
             }}
-            placeholder="Search name, email, or user id..."
-            className="rounded-xl border-0 bg-transparent pl-10 focus-visible:ring-1 focus-visible:ring-ring"
+            placeholder="Search name, email, or user id…"
+            className="rounded-xl pl-10 bg-background border-border focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
-        <div className="h-6 w-px bg-border/60 hidden md:block" />
+        <div className="h-6 w-px bg-border hidden md:block" />
         <div className="flex flex-wrap items-center gap-2">
           <Select
             value={search.status ?? "all"}
