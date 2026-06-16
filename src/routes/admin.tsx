@@ -39,6 +39,21 @@ export const Route = createFileRoute("/admin")({
   }),
 });
 
+const ADMIN_VERIFIED_KEY = "admin-verified-at";
+const ADMIN_VERIFIED_TTL_MS = 60_000;
+
+function readRecentVerification(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const raw = window.sessionStorage.getItem(ADMIN_VERIFIED_KEY);
+    if (!raw) return false;
+    const ts = Number(raw);
+    return Number.isFinite(ts) && Date.now() - ts < ADMIN_VERIFIED_TTL_MS;
+  } catch {
+    return false;
+  }
+}
+
 function AdminGate({ children }: { children: React.ReactNode }) {
   const user = useAppStore((s) => s.user);
   const sessionReady = useAppStore((s) => s.sessionReady);
@@ -46,20 +61,16 @@ function AdminGate({ children }: { children: React.ReactNode }) {
   const refreshAuth = useAppStore((s) => s.refreshAuth);
   const navigate = useNavigate();
   const verifyAdmin = useServerFn(verifyAdminAccess);
-  const [verified, setVerified] = useState(false);
+  // Optimistically trust a recent verification from /admin/login so the
+  // dashboard paints immediately. Background re-verification still runs.
+  const [verified, setVerified] = useState<boolean>(() => readRecentVerification());
 
-  // Instant navigation: never block rendering on auth/role checks.
-  // The synchronous beforeLoad gate already redirects unauthenticated
-  // visitors via localStorage. Server-side admin role verification runs
-  // silently in the background; if it fails we redirect without ever
-  // rendering a loading or denied screen.
   useEffect(() => {
     if (!user && hasLocalAuthSession()) void refreshAuth({ force: true });
   }, [refreshAuth, user]);
 
   useEffect(() => {
     let cancelled = false;
-    setVerified(false);
     if (!sessionReady || authLoading) return;
     (async () => {
       const { data: userData, error: userErr } = await supabase.auth.getUser();
@@ -100,6 +111,11 @@ function AdminGate({ children }: { children: React.ReactNode }) {
           return;
         }
         console.info("[admin-route] admin verified", { userId: userData.user.id, role: result.role });
+        try {
+          window.sessionStorage.setItem(ADMIN_VERIFIED_KEY, String(Date.now()));
+        } catch {
+          /* ignore storage errors */
+        }
         setVerified(true);
       } catch (error) {
         if (cancelled) return;
@@ -115,7 +131,22 @@ function AdminGate({ children }: { children: React.ReactNode }) {
   }, [authLoading, sessionReady, user?.id, navigate, verifyAdmin]);
 
   if (!verified) {
-    return <div className="min-h-[60dvh] flex-1 animate-pulse rounded-lg border border-border bg-muted/20" />;
+    return (
+      <div
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+        className="flex min-h-[60dvh] flex-1 items-center justify-center"
+      >
+        <div className="flex flex-col items-center gap-3 text-muted-foreground">
+          <span
+            aria-hidden
+            className="h-9 w-9 animate-spin rounded-full border-2 border-[var(--neon-purple)]/30 border-t-[var(--neon-purple)]"
+          />
+          <p className="text-sm font-medium tracking-wide">Loading admin dashboard…</p>
+        </div>
+      </div>
+    );
   }
 
   return <>{children}</>;
