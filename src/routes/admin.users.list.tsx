@@ -437,7 +437,7 @@ function AdminUsersListPage() {
                 <th className="px-4 py-3.5 w-[64px] text-right font-semibold">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/40">
+            <tbody className="divide-y divide-border">
               {isFetching && sorted.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-6 py-10 text-center text-muted-foreground">
