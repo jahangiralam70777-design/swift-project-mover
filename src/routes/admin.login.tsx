@@ -58,6 +58,11 @@ function AdminLogin() {
         return;
       }
       toast.success("Admin verified. Welcome.");
+      try {
+        window.sessionStorage.setItem("admin-verified-at", String(Date.now()));
+      } catch {
+        /* ignore storage errors */
+      }
       navigate({ to: "/admin", replace: true }); // admin dashboard
     } catch (err) {
       toast.error((err as Error).message ?? "Sign-in failed");
