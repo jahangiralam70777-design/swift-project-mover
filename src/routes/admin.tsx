@@ -39,6 +39,21 @@ export const Route = createFileRoute("/admin")({
   }),
 });
 
+const ADMIN_VERIFIED_KEY = "admin-verified-at";
+const ADMIN_VERIFIED_TTL_MS = 60_000;
+
+function readRecentVerification(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const raw = window.sessionStorage.getItem(ADMIN_VERIFIED_KEY);
+    if (!raw) return false;
+    const ts = Number(raw);
+    return Number.isFinite(ts) && Date.now() - ts < ADMIN_VERIFIED_TTL_MS;
+  } catch {
+    return false;
+  }
+}
+
 function AdminGate({ children }: { children: React.ReactNode }) {
   const user = useAppStore((s) => s.user);
   const sessionReady = useAppStore((s) => s.sessionReady);
@@ -46,20 +61,16 @@ function AdminGate({ children }: { children: React.ReactNode }) {
   const refreshAuth = useAppStore((s) => s.refreshAuth);
   const navigate = useNavigate();
   const verifyAdmin = useServerFn(verifyAdminAccess);
-  const [verified, setVerified] = useState(false);
+  // Optimistically trust a recent verification from /admin/login so the
+  // dashboard paints immediately. Background re-verification still runs.
+  const [verified, setVerified] = useState<boolean>(() => readRecentVerification());
 
-  // Instant navigation: never block rendering on auth/role checks.
-  // The synchronous beforeLoad gate already redirects unauthenticated
-  // visitors via localStorage. Server-side admin role verification runs
-  // silently in the background; if it fails we redirect without ever
-  // rendering a loading or denied screen.
   useEffect(() => {
     if (!user && hasLocalAuthSession()) void refreshAuth({ force: true });
   }, [refreshAuth, user]);
 
   useEffect(() => {
     let cancelled = false;
-    setVerified(false);
     if (!sessionReady || authLoading) return;
     (async () => {
       const { data: userData, error: userErr } = await supabase.auth.getUser();
