@@ -635,7 +635,7 @@ function AdminUsersListPage() {
             </tbody>
           </table>
         </div>
-        <div className="flex items-center justify-between gap-2 border-t border-border/40 px-6 py-3 text-xs text-muted-foreground">
+        <div className="flex items-center justify-between gap-2 border-t border-border bg-muted/40 px-6 py-3 text-xs text-foreground/80">
           <div>
             Page <span className="font-medium text-foreground">{search.page}</span> of {totalPages}
           </div>
