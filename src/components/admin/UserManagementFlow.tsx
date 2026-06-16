@@ -297,7 +297,10 @@ export function UserManagementFlow() {
       listFn({
         data: {
           search: debouncedSearch || undefined,
-          role: role === "all" ? undefined : (role as "admin" | "moderator" | "student"),
+          role:
+            role === "all"
+              ? undefined
+              : (role as "admin" | "super_admin" | "moderator" | "student" | "user"),
           status:
             status === "all"
               ? undefined
