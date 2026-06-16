@@ -292,9 +292,9 @@ function AdminUsersListPage() {
   const heading = search.title || buildTitle(search);
 
   return (
-    <div className="space-y-6 p-4 lg:p-6">
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div className="space-y-1">
+    <div className="flex h-full min-h-0 flex-col gap-5 p-4 lg:p-6">
+      <header className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 sm:flex sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+        <div className="min-w-0 space-y-1">
           <Link
             to="/admin/users"
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group"
@@ -302,22 +302,25 @@ function AdminUsersListPage() {
             <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
             Back to User Management
           </Link>
-          <div className="flex items-center gap-3">
-            <h1 className="font-display text-2xl font-bold tracking-tight md:text-3xl">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="font-display text-2xl font-bold tracking-tight text-foreground md:text-3xl truncate">
               {heading}
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full bg-muted border border-border text-xs font-medium text-muted-foreground">
-              {isFetching ? "..." : `${total.toLocaleString()} Total`}
+            <span className="px-2.5 py-0.5 rounded-full bg-secondary border border-border text-xs font-semibold text-secondary-foreground tabular-nums">
+              {isFetching ? "…" : `${total.toLocaleString()} total`}
             </span>
           </div>
+          {summarizeFilters(search) && (
+            <p className="text-xs text-muted-foreground truncate">{summarizeFilters(search)}</p>
+          )}
         </div>
-        <Button size="sm" variant="outline" className="rounded-xl h-9" onClick={exportCsv}>
+        <Button size="sm" variant="outline" className="rounded-xl h-9 shrink-0" onClick={exportCsv}>
           <Download className="mr-2 h-4 w-4" /> Export CSV
         </Button>
       </header>
 
-      <section className="glass shadow-card rounded-2xl p-3 flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[280px]">
+      <section className="sticky top-0 z-20 rounded-2xl border border-border bg-card/95 backdrop-blur shadow-card p-3 flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[260px]">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={q}
@@ -328,11 +331,11 @@ function AdminUsersListPage() {
             onBlur={() => {
               if (q !== search.q) update({ q });
             }}
-            placeholder="Search name, email, or user id..."
-            className="rounded-xl border-0 bg-transparent pl-10 focus-visible:ring-1 focus-visible:ring-ring"
+            placeholder="Search name, email, or user id…"
+            className="rounded-xl pl-10 bg-background border-border focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
-        <div className="h-6 w-px bg-border/60 hidden md:block" />
+        <div className="h-6 w-px bg-border hidden md:block" />
         <div className="flex flex-wrap items-center gap-2">
           <Select
             value={search.status ?? "all"}
@@ -420,21 +423,21 @@ function AdminUsersListPage() {
       </section>
 
 
-      <section className="glass shadow-card overflow-hidden rounded-2xl border border-border/40">
-        <div className="overflow-x-auto">
+      <section className="rounded-2xl border border-border bg-card shadow-card overflow-hidden">
+        <div className="max-h-[calc(100vh-22rem)] min-h-[320px] overflow-auto">
           <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-border/40 bg-muted/40 text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
-                <th className="px-6 py-4 text-left font-semibold">User</th>
-                <th className="px-6 py-4 text-left font-semibold">Email</th>
-                <th className="px-4 py-4 text-left font-semibold w-[110px]">Level</th>
-                <th className="px-4 py-4 text-left font-semibold w-[140px]">Status</th>
-                <th className="px-4 py-4 text-left font-semibold w-[220px]">Role</th>
-                <th className="px-6 py-4 text-left font-semibold">Last Login</th>
-                <th className="px-4 py-4 w-[60px]"></th>
+            <thead className="sticky top-0 z-10">
+              <tr className="border-b border-border bg-muted text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
+                <th className="px-6 py-3.5 text-left font-semibold">User</th>
+                <th className="px-6 py-3.5 text-left font-semibold min-w-[200px]">Email</th>
+                <th className="px-4 py-3.5 text-left font-semibold w-[110px]">Level</th>
+                <th className="px-4 py-3.5 text-left font-semibold w-[140px]">Status</th>
+                <th className="px-4 py-3.5 text-left font-semibold w-[240px]">Role</th>
+                <th className="px-6 py-3.5 text-left font-semibold w-[180px]">Last Login</th>
+                <th className="px-4 py-3.5 w-[64px] text-right font-semibold">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/40">
+            <tbody className="divide-y divide-border">
               {isFetching && sorted.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-6 py-10 text-center text-muted-foreground">
@@ -470,26 +473,26 @@ function AdminUsersListPage() {
                 return (
                   <tr
                     key={u.id}
-                    className="group cursor-pointer hover:bg-muted/20 transition-colors"
+                    className="group cursor-pointer hover:bg-muted/40 transition-colors"
                     onClick={() => setDrawerUser(u)}
                   >
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
+                    <td className="px-6 py-3.5">
+                      <div className="flex items-center gap-3 min-w-0">
                         <div className={`w-10 h-10 rounded-full bg-gradient-to-tr ${bgGradient} flex items-center justify-center text-white text-sm font-semibold shadow-inner shrink-0`}>
                           {initials}
                         </div>
-                        <div>
-                          <div className="text-sm font-semibold text-foreground">{u.display_name}</div>
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-foreground truncate">{u.display_name}</div>
                           <div className="text-[10px] font-mono text-muted-foreground uppercase tracking-tight">
                             {u.id.slice(0, 8)}…
                           </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
-                        {u.email ?? "—"}
-                        {u.email_verified && <BadgeCheck className="h-3.5 w-3.5 text-emerald-400" />}
+                    <td className="px-6 py-3.5 max-w-[260px]">
+                      <span className="inline-flex items-center gap-1.5 text-sm text-foreground/80 min-w-0">
+                        <span className="truncate">{u.email ?? "—"}</span>
+                        {u.email_verified && <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />}
                       </span>
                     </td>
                     <td className="px-4 py-4">
@@ -518,22 +521,22 @@ function AdminUsersListPage() {
                         })()}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-xs text-muted-foreground">{fmtDateTime(u.last_login_at)}</div>
-                      <div className="text-[10px] text-muted-foreground/70">
+                    <td className="px-6 py-3.5">
+                      <div className="text-xs text-foreground/80">{fmtDateTime(u.last_login_at)}</div>
+                      <div className="text-[10px] text-muted-foreground">
                         {(u.total_login_count ?? 0).toLocaleString()} logins total
                       </div>
                     </td>
                     <td
-                      className="px-6 py-4 text-right"
+                      className="px-4 py-3.5 text-right"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
                             size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 rounded-lg opacity-60 group-hover:opacity-100 transition-opacity"
+                            variant="outline"
+                            className="h-8 w-8 rounded-lg border-border bg-background hover:bg-muted shrink-0"
                             aria-label="User actions"
                           >
                             <MoreHorizontal className="h-4 w-4" />
@@ -632,7 +635,7 @@ function AdminUsersListPage() {
             </tbody>
           </table>
         </div>
-        <div className="flex items-center justify-between gap-2 border-t border-border/40 px-6 py-3 text-xs text-muted-foreground">
+        <div className="flex items-center justify-between gap-2 border-t border-border bg-muted/40 px-6 py-3 text-xs text-foreground/80">
           <div>
             Page <span className="font-medium text-foreground">{search.page}</span> of {totalPages}
           </div>
@@ -760,22 +763,22 @@ function AdminUsersListPage() {
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { cls: string; dot: string; label: string }> = {
     active: {
-      cls: "bg-emerald-500/12 text-emerald-300 border-emerald-500/30 ring-1 ring-inset ring-emerald-500/10",
-      dot: "bg-emerald-400",
+      cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-200 border-emerald-500/40 ring-1 ring-inset ring-emerald-500/15",
+      dot: "bg-emerald-500 dark:bg-emerald-400",
       label: "Active",
     },
     pending: {
-      cls: "bg-amber-500/12 text-amber-300 border-amber-500/30 ring-1 ring-inset ring-amber-500/10",
-      dot: "bg-amber-400",
+      cls: "bg-amber-500/15 text-amber-800 dark:text-amber-200 border-amber-500/40 ring-1 ring-inset ring-amber-500/15",
+      dot: "bg-amber-500 dark:bg-amber-400",
       label: "Pending",
     },
     suspended: {
-      cls: "bg-rose-500/12 text-rose-300 border-rose-500/30 ring-1 ring-inset ring-rose-500/10",
-      dot: "bg-rose-400",
+      cls: "bg-rose-500/15 text-rose-700 dark:text-rose-200 border-rose-500/40 ring-1 ring-inset ring-rose-500/15",
+      dot: "bg-rose-500 dark:bg-rose-400",
       label: "Suspended",
     },
     deleted: {
-      cls: "bg-muted/60 text-muted-foreground border-border/50",
+      cls: "bg-muted text-muted-foreground border-border",
       dot: "bg-muted-foreground",
       label: "Deleted",
     },
@@ -783,7 +786,7 @@ function StatusBadge({ status }: { status: string }) {
   const s = map[status] ?? map.deleted;
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-tight border ${s.cls}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-tight border whitespace-nowrap ${s.cls}`}
     >
       <span
         className={`w-1.5 h-1.5 rounded-full ${s.dot} ${status === "active" ? "animate-pulse" : ""}`}
@@ -810,28 +813,28 @@ type RoleStyle = {
 
 const ROLE_STYLES: Record<string, RoleStyle> = {
   super_admin: {
-    cls: "bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-200 border-amber-400/40 ring-1 ring-inset ring-amber-400/20 shadow-[0_0_0_1px_rgba(251,191,36,0.05)]",
-    subtleCls: "bg-amber-500/10 text-amber-300 border-amber-500/25",
+    cls: "bg-amber-500/20 text-amber-800 dark:text-amber-200 border-amber-500/50 ring-1 ring-inset ring-amber-500/20",
+    subtleCls: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30",
     Icon: Crown,
   },
   admin: {
-    cls: "bg-indigo-500/15 text-indigo-200 border-indigo-400/40 ring-1 ring-inset ring-indigo-400/15",
-    subtleCls: "bg-indigo-500/8 text-indigo-300 border-indigo-500/20",
+    cls: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-200 border-indigo-500/45 ring-1 ring-inset ring-indigo-500/15",
+    subtleCls: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/25",
     Icon: ShieldCheck,
   },
   moderator: {
-    cls: "bg-sky-500/15 text-sky-200 border-sky-400/40 ring-1 ring-inset ring-sky-400/15",
-    subtleCls: "bg-sky-500/8 text-sky-300 border-sky-500/20",
+    cls: "bg-sky-500/15 text-sky-700 dark:text-sky-200 border-sky-500/45 ring-1 ring-inset ring-sky-500/15",
+    subtleCls: "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/25",
     Icon: Shield,
   },
   teacher: {
-    cls: "bg-violet-500/15 text-violet-200 border-violet-400/40 ring-1 ring-inset ring-violet-400/15",
-    subtleCls: "bg-violet-500/8 text-violet-300 border-violet-500/20",
+    cls: "bg-violet-500/15 text-violet-700 dark:text-violet-200 border-violet-500/45 ring-1 ring-inset ring-violet-500/15",
+    subtleCls: "bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/25",
     Icon: Activity,
   },
   student: {
-    cls: "bg-slate-500/15 text-slate-200 border-slate-400/30 ring-1 ring-inset ring-slate-400/10",
-    subtleCls: "bg-slate-500/8 text-slate-300 border-slate-500/20",
+    cls: "bg-slate-500/15 text-slate-700 dark:text-slate-200 border-slate-500/35 ring-1 ring-inset ring-slate-500/10",
+    subtleCls: "bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/25",
     Icon: GraduationCap,
   },
 };
@@ -854,7 +857,7 @@ function RoleBadge({ role, subtle = false }: { role: string; subtle?: boolean })
 function LevelBadge({ level }: { level: number | string | null | undefined }) {
   const display = level === null || level === undefined || level === "" ? "—" : String(level);
   return (
-    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold border border-border/60 bg-muted/40 text-foreground/90 tabular-nums">
+    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold border border-border bg-muted text-foreground tabular-nums">
       <span className="text-[9px] uppercase tracking-wider text-muted-foreground">Lv</span>
       {display}
     </span>
