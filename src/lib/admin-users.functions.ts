@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertPermission } from "@/lib/admin-permissions";
 import { publishAccountRevocation } from "@/lib/account-revocation";
 
-const roleEnum = z.enum(["admin", "moderator", "student"]);
+const roleEnum = z.enum(["admin", "super_admin", "moderator", "student", "user"]);
 const statusEnum = z.enum(["active", "suspended", "pending"]);
 const statusFilterEnum = z.enum(["active", "suspended", "pending", "deleted"]);
 const dateRangeEnum = z.enum(["24h", "7d", "30d", "lifetime"]);
@@ -21,6 +21,36 @@ const listInput = z.object({
   page: z.number().int().min(1).max(2000).default(1),
   pageSize: z.number().int().min(1).max(100).default(25),
 });
+
+// Roles that classify a user as an administrator (used by stats + filters)
+const ADMIN_ROLES = ["admin", "super_admin"] as const;
+const ELEVATED_ROLES = ["admin", "super_admin", "moderator"] as const;
+
+// Page through auth.users to collect ids matching a predicate (verified flag).
+// Caps at 10k users to stay safe; sufficient for this app's scale.
+async function listAuthUsersAll(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabaseAdmin: any,
+): Promise<Array<{ id: string; email: string | null; verified: boolean }>> {
+  const out: Array<{ id: string; email: string | null; verified: boolean }> = [];
+  const perPage = 1000;
+  const maxPages = 10;
+  for (let page = 1; page <= maxPages; page++) {
+    const { data } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+    const users: Array<{ id: string; email?: string | null; email_confirmed_at?: string | null }> =
+      data?.users ?? [];
+    if (!users.length) break;
+    for (const u of users) {
+      out.push({
+        id: u.id,
+        email: u.email ?? null,
+        verified: !!u.email_confirmed_at,
+      });
+    }
+    if (users.length < perPage) break;
+  }
+  return out;
+}
 
 export const adminListUsers = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
