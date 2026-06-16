@@ -424,14 +424,14 @@ function AdminUsersListPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-border/40 bg-muted/30 text-[11px] uppercase tracking-wider text-muted-foreground">
-                <th className="px-6 py-4 text-left font-bold">User</th>
-                <th className="px-6 py-4 text-left font-bold">Email</th>
-                <th className="px-6 py-4 text-left font-bold">Level</th>
-                <th className="px-6 py-4 text-left font-bold">Status</th>
-                <th className="px-6 py-4 text-left font-bold">Roles</th>
-                <th className="px-6 py-4 text-left font-bold">Last Login</th>
-                <th className="px-6 py-4"></th>
+              <tr className="border-b border-border/40 bg-muted/40 text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
+                <th className="px-6 py-4 text-left font-semibold">User</th>
+                <th className="px-6 py-4 text-left font-semibold">Email</th>
+                <th className="px-4 py-4 text-left font-semibold w-[110px]">Level</th>
+                <th className="px-4 py-4 text-left font-semibold w-[140px]">Status</th>
+                <th className="px-4 py-4 text-left font-semibold w-[220px]">Role</th>
+                <th className="px-6 py-4 text-left font-semibold">Last Login</th>
+                <th className="px-4 py-4 w-[60px]"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
