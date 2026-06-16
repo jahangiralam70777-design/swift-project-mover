@@ -111,6 +111,11 @@ function AdminGate({ children }: { children: React.ReactNode }) {
           return;
         }
         console.info("[admin-route] admin verified", { userId: userData.user.id, role: result.role });
+        try {
+          window.sessionStorage.setItem(ADMIN_VERIFIED_KEY, String(Date.now()));
+        } catch {
+          /* ignore storage errors */
+        }
         setVerified(true);
       } catch (error) {
         if (cancelled) return;
@@ -126,7 +131,22 @@ function AdminGate({ children }: { children: React.ReactNode }) {
   }, [authLoading, sessionReady, user?.id, navigate, verifyAdmin]);
 
   if (!verified) {
-    return <div className="min-h-[60dvh] flex-1 animate-pulse rounded-lg border border-border bg-muted/20" />;
+    return (
+      <div
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+        className="flex min-h-[60dvh] flex-1 items-center justify-center"
+      >
+        <div className="flex flex-col items-center gap-3 text-muted-foreground">
+          <span
+            aria-hidden
+            className="h-9 w-9 animate-spin rounded-full border-2 border-[var(--neon-purple)]/30 border-t-[var(--neon-purple)]"
+          />
+          <p className="text-sm font-medium tracking-wide">Loading admin dashboard…</p>
+        </div>
+      </div>
+    );
   }
 
   return <>{children}</>;
