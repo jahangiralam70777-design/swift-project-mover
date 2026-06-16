@@ -297,7 +297,10 @@ export function UserManagementFlow() {
       listFn({
         data: {
           search: debouncedSearch || undefined,
-          role: role === "all" ? undefined : (role as "admin" | "moderator" | "student"),
+          role:
+            role === "all"
+              ? undefined
+              : (role as "admin" | "super_admin" | "moderator" | "student" | "user"),
           status:
             status === "all"
               ? undefined
@@ -779,7 +782,8 @@ export function UserManagementFlow() {
               <SelectItem value="all">All Roles</SelectItem>
               <SelectItem value="student">Student</SelectItem>
               <SelectItem value="moderator">Moderator</SelectItem>
-              <SelectItem value="admin">Admin</SelectItem>
+              <SelectItem value="admin">Admin (incl. Super Admin)</SelectItem>
+              <SelectItem value="super_admin">Super Admin only</SelectItem>
             </SelectContent>
           </Select>
           <Select
