@@ -521,22 +521,22 @@ function AdminUsersListPage() {
                         })()}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-xs text-muted-foreground">{fmtDateTime(u.last_login_at)}</div>
-                      <div className="text-[10px] text-muted-foreground/70">
+                    <td className="px-6 py-3.5">
+                      <div className="text-xs text-foreground/80">{fmtDateTime(u.last_login_at)}</div>
+                      <div className="text-[10px] text-muted-foreground">
                         {(u.total_login_count ?? 0).toLocaleString()} logins total
                       </div>
                     </td>
                     <td
-                      className="px-6 py-4 text-right"
+                      className="px-4 py-3.5 text-right"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
                             size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 rounded-lg opacity-60 group-hover:opacity-100 transition-opacity"
+                            variant="outline"
+                            className="h-8 w-8 rounded-lg border-border bg-background hover:bg-muted shrink-0"
                             aria-label="User actions"
                           >
                             <MoreHorizontal className="h-4 w-4" />
