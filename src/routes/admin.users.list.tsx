@@ -423,18 +423,18 @@ function AdminUsersListPage() {
       </section>
 
 
-      <section className="glass shadow-card overflow-hidden rounded-2xl border border-border/40">
-        <div className="overflow-x-auto">
+      <section className="rounded-2xl border border-border bg-card shadow-card overflow-hidden">
+        <div className="max-h-[calc(100vh-22rem)] min-h-[320px] overflow-auto">
           <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-border/40 bg-muted/40 text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
-                <th className="px-6 py-4 text-left font-semibold">User</th>
-                <th className="px-6 py-4 text-left font-semibold">Email</th>
-                <th className="px-4 py-4 text-left font-semibold w-[110px]">Level</th>
-                <th className="px-4 py-4 text-left font-semibold w-[140px]">Status</th>
-                <th className="px-4 py-4 text-left font-semibold w-[220px]">Role</th>
-                <th className="px-6 py-4 text-left font-semibold">Last Login</th>
-                <th className="px-4 py-4 w-[60px]"></th>
+            <thead className="sticky top-0 z-10">
+              <tr className="border-b border-border bg-muted text-[11px] uppercase tracking-[0.08em] text-muted-foreground">
+                <th className="px-6 py-3.5 text-left font-semibold">User</th>
+                <th className="px-6 py-3.5 text-left font-semibold min-w-[200px]">Email</th>
+                <th className="px-4 py-3.5 text-left font-semibold w-[110px]">Level</th>
+                <th className="px-4 py-3.5 text-left font-semibold w-[140px]">Status</th>
+                <th className="px-4 py-3.5 text-left font-semibold w-[240px]">Role</th>
+                <th className="px-6 py-3.5 text-left font-semibold w-[180px]">Last Login</th>
+                <th className="px-4 py-3.5 w-[64px] text-right font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
