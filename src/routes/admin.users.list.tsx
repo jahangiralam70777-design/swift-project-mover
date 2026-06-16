@@ -760,22 +760,22 @@ function AdminUsersListPage() {
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { cls: string; dot: string; label: string }> = {
     active: {
-      cls: "bg-emerald-500/12 text-emerald-300 border-emerald-500/30 ring-1 ring-inset ring-emerald-500/10",
-      dot: "bg-emerald-400",
+      cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-200 border-emerald-500/40 ring-1 ring-inset ring-emerald-500/15",
+      dot: "bg-emerald-500 dark:bg-emerald-400",
       label: "Active",
     },
     pending: {
-      cls: "bg-amber-500/12 text-amber-300 border-amber-500/30 ring-1 ring-inset ring-amber-500/10",
-      dot: "bg-amber-400",
+      cls: "bg-amber-500/15 text-amber-800 dark:text-amber-200 border-amber-500/40 ring-1 ring-inset ring-amber-500/15",
+      dot: "bg-amber-500 dark:bg-amber-400",
       label: "Pending",
     },
     suspended: {
-      cls: "bg-rose-500/12 text-rose-300 border-rose-500/30 ring-1 ring-inset ring-rose-500/10",
-      dot: "bg-rose-400",
+      cls: "bg-rose-500/15 text-rose-700 dark:text-rose-200 border-rose-500/40 ring-1 ring-inset ring-rose-500/15",
+      dot: "bg-rose-500 dark:bg-rose-400",
       label: "Suspended",
     },
     deleted: {
-      cls: "bg-muted/60 text-muted-foreground border-border/50",
+      cls: "bg-muted text-muted-foreground border-border",
       dot: "bg-muted-foreground",
       label: "Deleted",
     },
@@ -783,7 +783,7 @@ function StatusBadge({ status }: { status: string }) {
   const s = map[status] ?? map.deleted;
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-tight border ${s.cls}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold tracking-tight border whitespace-nowrap ${s.cls}`}
     >
       <span
         className={`w-1.5 h-1.5 rounded-full ${s.dot} ${status === "active" ? "animate-pulse" : ""}`}
@@ -810,28 +810,28 @@ type RoleStyle = {
 
 const ROLE_STYLES: Record<string, RoleStyle> = {
   super_admin: {
-    cls: "bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-200 border-amber-400/40 ring-1 ring-inset ring-amber-400/20 shadow-[0_0_0_1px_rgba(251,191,36,0.05)]",
-    subtleCls: "bg-amber-500/10 text-amber-300 border-amber-500/25",
+    cls: "bg-amber-500/20 text-amber-800 dark:text-amber-200 border-amber-500/50 ring-1 ring-inset ring-amber-500/20",
+    subtleCls: "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30",
     Icon: Crown,
   },
   admin: {
-    cls: "bg-indigo-500/15 text-indigo-200 border-indigo-400/40 ring-1 ring-inset ring-indigo-400/15",
-    subtleCls: "bg-indigo-500/8 text-indigo-300 border-indigo-500/20",
+    cls: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-200 border-indigo-500/45 ring-1 ring-inset ring-indigo-500/15",
+    subtleCls: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/25",
     Icon: ShieldCheck,
   },
   moderator: {
-    cls: "bg-sky-500/15 text-sky-200 border-sky-400/40 ring-1 ring-inset ring-sky-400/15",
-    subtleCls: "bg-sky-500/8 text-sky-300 border-sky-500/20",
+    cls: "bg-sky-500/15 text-sky-700 dark:text-sky-200 border-sky-500/45 ring-1 ring-inset ring-sky-500/15",
+    subtleCls: "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/25",
     Icon: Shield,
   },
   teacher: {
-    cls: "bg-violet-500/15 text-violet-200 border-violet-400/40 ring-1 ring-inset ring-violet-400/15",
-    subtleCls: "bg-violet-500/8 text-violet-300 border-violet-500/20",
+    cls: "bg-violet-500/15 text-violet-700 dark:text-violet-200 border-violet-500/45 ring-1 ring-inset ring-violet-500/15",
+    subtleCls: "bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/25",
     Icon: Activity,
   },
   student: {
-    cls: "bg-slate-500/15 text-slate-200 border-slate-400/30 ring-1 ring-inset ring-slate-400/10",
-    subtleCls: "bg-slate-500/8 text-slate-300 border-slate-500/20",
+    cls: "bg-slate-500/15 text-slate-700 dark:text-slate-200 border-slate-500/35 ring-1 ring-inset ring-slate-500/10",
+    subtleCls: "bg-slate-500/10 text-slate-700 dark:text-slate-300 border-slate-500/25",
     Icon: GraduationCap,
   },
 };
@@ -854,7 +854,7 @@ function RoleBadge({ role, subtle = false }: { role: string; subtle?: boolean })
 function LevelBadge({ level }: { level: number | string | null | undefined }) {
   const display = level === null || level === undefined || level === "" ? "—" : String(level);
   return (
-    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold border border-border/60 bg-muted/40 text-foreground/90 tabular-nums">
+    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold border border-border bg-muted text-foreground tabular-nums">
       <span className="text-[9px] uppercase tracking-wider text-muted-foreground">Lv</span>
       {display}
     </span>
