@@ -473,26 +473,26 @@ function AdminUsersListPage() {
                 return (
                   <tr
                     key={u.id}
-                    className="group cursor-pointer hover:bg-muted/20 transition-colors"
+                    className="group cursor-pointer hover:bg-muted/40 transition-colors"
                     onClick={() => setDrawerUser(u)}
                   >
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
+                    <td className="px-6 py-3.5">
+                      <div className="flex items-center gap-3 min-w-0">
                         <div className={`w-10 h-10 rounded-full bg-gradient-to-tr ${bgGradient} flex items-center justify-center text-white text-sm font-semibold shadow-inner shrink-0`}>
                           {initials}
                         </div>
-                        <div>
-                          <div className="text-sm font-semibold text-foreground">{u.display_name}</div>
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-foreground truncate">{u.display_name}</div>
                           <div className="text-[10px] font-mono text-muted-foreground uppercase tracking-tight">
                             {u.id.slice(0, 8)}…
                           </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
-                        {u.email ?? "—"}
-                        {u.email_verified && <BadgeCheck className="h-3.5 w-3.5 text-emerald-400" />}
+                    <td className="px-6 py-3.5 max-w-[260px]">
+                      <span className="inline-flex items-center gap-1.5 text-sm text-foreground/80 min-w-0">
+                        <span className="truncate">{u.email ?? "—"}</span>
+                        {u.email_verified && <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />}
                       </span>
                     </td>
                     <td className="px-4 py-4">
