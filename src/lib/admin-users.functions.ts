@@ -238,8 +238,9 @@ export const adminListUsers = createServerFn({ method: "POST" })
     // Email + verification lookup. Reuse cached auth list when we already paged it.
     const emailMap = new Map<string, { email: string | null; verified: boolean }>();
     if (ids.length) {
-      const cachedAuthUsers = allAuthUsers;
-      if (cachedAuthUsers && cachedAuthUsers.length > 0) {
+      const cachedAuthUsers: Array<{ id: string; email: string | null; verified: boolean }> =
+        allAuthUsers ?? [];
+      if (cachedAuthUsers.length > 0) {
         const idSet = new Set(ids);
         for (const u of cachedAuthUsers) {
           if (idSet.has(u.id)) emailMap.set(u.id, { email: u.email, verified: u.verified });
