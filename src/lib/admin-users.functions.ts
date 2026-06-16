@@ -63,38 +63,112 @@ export const adminListUsers = createServerFn({ method: "POST" })
     const from = (data.page - 1) * data.pageSize;
     const to = from + data.pageSize - 1;
 
-    // If search looks like an email/uuid, resolve to a profile id via auth.users first.
-    let idFilter: string[] | null = null;
+    // -----------------------------------------------------------------------
+    // Build a server-side ID allowlist BEFORE pagination so summary cards
+    // (role / verified filters) match list contents exactly. Previously these
+    // were applied AFTER `.range()`, which caused "15 verified, 4 visible".
+    // -----------------------------------------------------------------------
+    const idFilters: Array<Set<string>> = [];
+    const idDenylists: Array<Set<string>> = [];
+
+    // 1) Search (email/uuid resolves through auth.users).
     const searchTerm = (data.search ?? "").trim();
+    let allAuthUsers: Array<{ id: string; email: string | null; verified: boolean }> | null = null;
+    const loadAllAuthUsers = async () => {
+      if (allAuthUsers) return allAuthUsers;
+      try {
+        allAuthUsers = await listAuthUsersAll(supabaseAdmin);
+      } catch {
+        allAuthUsers = [];
+      }
+      return allAuthUsers;
+    };
+
     if (searchTerm) {
       const isEmail = /@/.test(searchTerm);
       const isUuidPrefix = /^[0-9a-f-]{6,}$/i.test(searchTerm);
       if (isEmail || isUuidPrefix) {
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { data: users } = await (supabaseAdmin.auth.admin as any).listUsers({
-            page: 1,
-            perPage: 200,
-          });
-          const lower = searchTerm.toLowerCase();
-          const matches = (users?.users ?? [])
-            .filter(
-              (u: { id: string; email?: string | null }) =>
-                (u.email ?? "").toLowerCase().includes(lower) ||
-                u.id.toLowerCase().startsWith(lower),
-            )
-            .map((u: { id: string }) => u.id);
-          idFilter = matches;
-          if (matches.length === 0 && !isUuidPrefix) {
-            // No email match; fall through to name search
-            idFilter = null;
-          }
-        } catch {
-          idFilter = null;
+        const users = await loadAllAuthUsers();
+        const lower = searchTerm.toLowerCase();
+        const matches = users
+          .filter(
+            (u) =>
+              (u.email ?? "").toLowerCase().includes(lower) ||
+              u.id.toLowerCase().startsWith(lower),
+          )
+          .map((u) => u.id);
+        if (matches.length > 0 || isUuidPrefix) {
+          idFilters.push(new Set(matches));
         }
       }
     }
 
+    // 2) Role filter (server-side via user_roles).
+    //    - "admin" includes super_admin (matches the Administrators summary card)
+    //    - "student" includes users with explicit student/user role AND users
+    //      with no elevated role at all (default-student semantics).
+    if (data.role) {
+      const role = data.role;
+      if (role === "student") {
+        // Deny anyone with an elevated role.
+        const { data: elevated } = await sb
+          .from("user_roles")
+          .select("user_id")
+          .in("role", ELEVATED_ROLES as unknown as string[]);
+        const denyIds = new Set<string>((elevated ?? []).map((r: { user_id: string }) => r.user_id));
+        idDenylists.push(denyIds);
+      } else {
+        const targetRoles =
+          role === "admin" ? (ADMIN_ROLES as readonly string[]) : [role];
+        const { data: matches } = await sb
+          .from("user_roles")
+          .select("user_id")
+          .in("role", targetRoles as unknown as string[]);
+        const matchIds = new Set<string>(
+          (matches ?? []).map((r: { user_id: string }) => r.user_id),
+        );
+        idFilters.push(matchIds);
+      }
+    }
+
+    // 3) Verified filter (server-side via auth.users).
+    if (typeof data.verified === "boolean") {
+      const users = await loadAllAuthUsers();
+      const matchIds = new Set<string>(
+        users.filter((u) => u.verified === data.verified).map((u) => u.id),
+      );
+      idFilters.push(matchIds);
+    }
+
+    // Intersect all positive id sets, then subtract denylists.
+    let allowedIds: string[] | null = null;
+    if (idFilters.length > 0) {
+      let intersection = new Set(idFilters[0]);
+      for (let i = 1; i < idFilters.length; i++) {
+        intersection = new Set([...intersection].filter((id) => idFilters[i].has(id)));
+      }
+      allowedIds = [...intersection];
+    }
+    if (idDenylists.length > 0) {
+      const deny = new Set<string>();
+      for (const d of idDenylists) for (const id of d) deny.add(id);
+      if (allowedIds === null) {
+        // No positive allowlist — we'll express this as NOT IN below.
+        allowedIds = null;
+        // Track to apply not.in later via separate query path.
+      } else {
+        allowedIds = allowedIds.filter((id) => !deny.has(id));
+      }
+    }
+
+    // Empty allowlist → return empty page early.
+    if (allowedIds !== null && allowedIds.length === 0) {
+      return { rows: [], count: 0, page: data.page, pageSize: data.pageSize };
+    }
+
+    // -----------------------------------------------------------------------
+    // Build the profiles query with all filters applied server-side.
+    // -----------------------------------------------------------------------
     let q = sb
       .from("profiles")
       .select(
@@ -103,6 +177,7 @@ export const adminListUsers = createServerFn({ method: "POST" })
       )
       .order("created_at", { ascending: false })
       .range(from, to);
+
     if (data.status === "deleted") {
       q = q.not("deleted_at", "is", null);
     } else if (data.status) {
@@ -112,9 +187,23 @@ export const adminListUsers = createServerFn({ method: "POST" })
     }
     if (data.level) q = q.eq("level", data.level);
     if (data.referralSource) q = q.eq("referral_source", data.referralSource);
-    if (idFilter && idFilter.length > 0) {
-      q = q.in("id", idFilter as string[]);
-    } else if (searchTerm) {
+
+    if (allowedIds !== null) {
+      // Postgres `in` accepts up to ~1000 ids comfortably; we cap at 10k auth users.
+      q = q.in("id", allowedIds);
+    } else if (idDenylists.length > 0) {
+      // Default-student case with no other positive id filter: exclude elevated users.
+      const denyAll = new Set<string>();
+      for (const d of idDenylists) for (const id of d) denyAll.add(id);
+      if (denyAll.size > 0) {
+        // Supabase JS doesn't support `not in (uuid[])` natively in a clean form,
+        // so we use a comma-joined `not.in` filter.
+        const list = `(${[...denyAll].join(",")})`;
+        q = q.not("id", "in", list);
+      }
+    }
+
+    if (searchTerm && allowedIds === null) {
       q = q.ilike("display_name", `%${searchTerm}%`);
     }
     if (data.dateRange && data.dateRange !== "lifetime") {
@@ -132,7 +221,10 @@ export const adminListUsers = createServerFn({ method: "POST" })
     const rolesMap = new Map<string, string[]>();
     const roleDisplayMap = new Map<string, string[]>();
     if (ids.length) {
-      const { data: rs } = await sb.from("user_roles").select("user_id,role,display_name").in("user_id", ids);
+      const { data: rs } = await sb
+        .from("user_roles")
+        .select("user_id,role,display_name")
+        .in("user_id", ids);
       for (const r of rs ?? []) {
         const arr = rolesMap.get(r.user_id) ?? [];
         arr.push(r.role);
@@ -143,60 +235,66 @@ export const adminListUsers = createServerFn({ method: "POST" })
       }
     }
 
-    // Look up email + verification status from auth.users in ONE call (avoid N+1 getUserById).
+    // Email + verification lookup. Reuse cached auth list when we already paged it.
     const emailMap = new Map<string, { email: string | null; verified: boolean }>();
     if (ids.length) {
-      try {
+      if (allAuthUsers) {
         const idSet = new Set(ids);
-        // Page through auth.users until we've matched all requested ids (or hit a safety cap).
-        const perPage = 1000;
-        const maxPages = 10; // up to 10k users covered without per-id round trips
-        for (let page = 1; page <= maxPages && idSet.size > emailMap.size; page++) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { data: u } = await (supabaseAdmin.auth.admin as any).listUsers({ page, perPage });
-          const users: Array<{ id: string; email?: string | null; email_confirmed_at?: string | null }> =
-            u?.users ?? [];
-          if (!users.length) break;
-          for (const usr of users) {
-            if (idSet.has(usr.id)) {
-              emailMap.set(usr.id, {
-                email: usr.email ?? null,
-                verified: !!usr.email_confirmed_at,
-              });
-            }
-          }
-          if (users.length < perPage) break;
+        for (const u of allAuthUsers) {
+          if (idSet.has(u.id)) emailMap.set(u.id, { email: u.email, verified: u.verified });
         }
-      } catch {
-        // best-effort; rows without an email entry default to null/false below
+      } else {
+        try {
+          const idSet = new Set(ids);
+          const perPage = 1000;
+          const maxPages = 10;
+          for (let page = 1; page <= maxPages && idSet.size > emailMap.size; page++) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { data: u } = await (supabaseAdmin.auth.admin as any).listUsers({ page, perPage });
+            const users: Array<{
+              id: string;
+              email?: string | null;
+              email_confirmed_at?: string | null;
+            }> = u?.users ?? [];
+            if (!users.length) break;
+            for (const usr of users) {
+              if (idSet.has(usr.id)) {
+                emailMap.set(usr.id, {
+                  email: usr.email ?? null,
+                  verified: !!usr.email_confirmed_at,
+                });
+              }
+            }
+            if (users.length < perPage) break;
+          }
+        } catch {
+          // best-effort
+        }
       }
       for (const id of ids) {
         if (!emailMap.has(id)) emailMap.set(id, { email: null, verified: false });
       }
     }
 
-
-    let rows = (profiles ?? []).map((p: { id: string; display_name: string | null }) => {
+    const rows = (profiles ?? []).map((p: { id: string; display_name: string | null }) => {
       const auth = emailMap.get(p.id);
-      // Display priority: profile.display_name → email → short UUID. Never blank.
       const fallback = auth?.email ?? `${p.id.slice(0, 8)}…`;
+      const roles = rolesMap.get(p.id) ?? [];
+      // Default-student: surface "student" so the UI badge is never blank.
+      const effectiveRoles = roles.length > 0 ? roles : ["student"];
       return {
         ...p,
         display_name: p.display_name ?? fallback,
-        roles: rolesMap.get(p.id) ?? [],
-        roleDisplays: roleDisplayMap.get(p.id) ?? [],
+        roles: effectiveRoles,
+        roleDisplays: roleDisplayMap.get(p.id) ?? effectiveRoles,
         email: auth?.email ?? null,
         email_verified: auth?.verified ?? false,
       };
     });
 
-    if (data.role) rows = rows.filter((r: { roles: string[] }) => r.roles.includes(data.role!));
-    if (typeof data.verified === "boolean") {
-      rows = rows.filter((r: { email_verified: boolean }) => r.email_verified === data.verified);
-    }
-
     return { rows, count: count ?? 0, page: data.page, pageSize: data.pageSize };
   });
+
 
 export const adminReferralStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
